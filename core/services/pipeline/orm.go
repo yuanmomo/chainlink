@@ -286,9 +286,9 @@ func (o *orm) processNextUnclaimedTaskRun(ctx context.Context, fn ProcessTaskRun
 		return errors.Wrap(err, "while processing task run")
 	}
 
+	// Emit a Postgres notification if this is the final `ResultTask`
 	if ptRun.PipelineTaskSpec.IsFinalPipelineOutput() {
-		// Emit a Postgres notification if this is the final `ResultTask`
-		err = o.db.Exec(`SELECT pg_notify('pipeline_run_completed', ?::text);`, ptRun.PipelineRunID).Error
+		err = o.eventBroadcaster.Notify(postgres.ChannelRunCompleted, ptRun.PipelineRunID)
 		if err != nil {
 			return errors.Wrap(err, "could not notify pipeline_run_completed")
 		}
