@@ -279,20 +279,17 @@ func (o *orm) processNextUnclaimedTaskRun(ctx context.Context, fn ProcessTaskRun
 			if err != nil {
 				return errors.Wrap(err, "could not mark pipeline_run as finished")
 			}
+			// Emit a Postgres notification if this is the final `ResultTask`
+			err = o.eventBroadcaster.NotifyUsing(tx.DB(), postgres.ChannelRunCompleted, fmt.Sprintf("%v", ptRun.PipelineRunID))
+			if err != nil {
+				return errors.Wrap(err, "could not notify pipeline_run_completed")
+			}
+			logger.Infow("Pipeline run completed", "runID", ptRun.PipelineRunID)
 		}
 		return nil
 	})
 	if err != nil {
 		return errors.Wrap(err, "while processing task run")
-	}
-
-	// Emit a Postgres notification if this is the final `ResultTask`
-	if ptRun.PipelineTaskSpec.IsFinalPipelineOutput() {
-		err = o.eventBroadcaster.Notify(postgres.ChannelRunCompleted, ptRun.PipelineRunID)
-		if err != nil {
-			return errors.Wrap(err, "could not notify pipeline_run_completed")
-		}
-		logger.Infow("Pipeline run completed", "runID", ptRun.PipelineRunID)
 	}
 	return nil
 }
