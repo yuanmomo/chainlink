@@ -1,4 +1,7 @@
 package main
+/**
+ * go build -buildmode=c-shared -o lib/lib-chainlink.dylib  core/services/main/vrf2.go
+ */
 
 import (
 	"fmt"
